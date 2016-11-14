@@ -1,0 +1,113 @@
+%% Ridge Regression
+load('digit_train', 'X', 'y');
+%show_digit(X);
+% Do feature normalization
+% a=magic(5)
+% % a(:,1:0)
+% b = a(1, :)
+% b(1) = []
+
+[p, N] = size(X);
+x_bar = (sum(X') / N)';
+sigma = (sum(((X - repmat(x_bar, 1, N)) .^ 2)') / N)';
+X = (X - repmat(x_bar, 1, N)) ./ repmat(sigma, 1, N);
+X(isnan(X) == 1) = 0;
+%%
+% Do LOOCV
+lambdas = [1e-3, 1e-2, 1e-1, 0, 1, 1e1, 1e2, 1e3];
+lambda = lambdas(1);
+
+for i = 1:length(lambdas)
+    E_val = 0;
+    for j = 1:size(X, 2)
+        %[i,j]
+        X_ = X; y_ = y;
+        X_(:, j) = []; y_(j) = []; % take point j out of X
+        w = ridge(X_, y_, lambdas(i));
+        if w' * [1; X(:, j)] * y(j) > 0
+            error = 0;
+        else
+            error = 1;
+        end
+        E_val = E_val + error;
+        %lambda
+    end
+    % Update lambda according validation error  
+    if i == 1
+        best_E_val = E_val;
+    end
+    if E_val < best_E_val
+        lambda = lambdas(i);
+        best_E_val = E_val;
+    end
+end
+%%
+lambda = 1e-2;
+w1 = ridge(X, y, lambda);
+w2 = ridge(X, y, 0);
+sum(w1.^2);
+sum(w2.^2);
+% Compute training error
+train_error_with = 1 - sum((w1' * [ones(1, N); X] .* y) > 0) / N
+train_error_without = 1 - sum((w2' * [ones(1, N); X] .* y) > 0) / N
+%%
+load('digit_test', 'X_test', 'y_test');
+% Do feature normalization
+[t_p, t_N] = size(X_test);
+t_x_bar = (sum(X_test') / t_N)';
+t_sigma = (sum(((X_test - repmat(t_x_bar, 1, t_N)) .^ 2)') / t_N)';
+X_test = (X_test - repmat(t_x_bar, 1, t_N)) ./ repmat(t_sigma, 1, t_N);
+X_test(isnan(X_test) == 1) = 0;
+% Compute test error
+test_error_with = 1 - sum((w1' * [ones(1, t_N); X_test] .* y_test) > 0) / t_N
+test_error_without = 1 - sum((w2' * [ones(1, t_N); X_test] .* y_test) > 0) / t_N
+%% Logistic
+%%
+% Do LOOCV
+lambdas = [1e-3, 1e-2, 1e-1, 0, 1, 1e1, 1e2, 1e3];
+lambda = lambdas(1);
+error_r = zeros(1, 8);
+
+for i = 1:length(lambdas)
+    E_val = 0;
+    for j = 1:size(X, 2)
+        [i,j]
+        X_ = X; y_ = y;
+        X_(:, j) = []; y_(j) = []; % take point j out of X
+        w = logistic_r(X_, y_, lambdas(i));
+        if w' * [1; X(:, j)] * y(j) > 0
+            error = 0;
+        else
+            error = 1;
+        end
+        E_val = E_val + error
+        lambda
+    end
+    % Update lambda according validation error  
+    error_r(i) = E_val;
+    if i == 1
+        best_E_val = E_val;
+    end
+    if E_val < best_E_val
+        lambda = lambdas(i);
+        best_E_val = E_val;
+    end
+end
+%% Compute training error
+lambda = 1;
+w1 = logistic_r(X, y, lambda);
+w2 = logistic_r(X, y, 0);
+train_error_with = 1 - sum((w1' * [ones(1, N); X] .* y) > 0) / N;
+train_error_witho = 1 - sum((w2' * [ones(1, N); X] .* y) > 0) / N;
+load('digit_test', 'X_test', 'y_test');
+
+%% Compute test error
+% Do feature normalization
+[t_p, t_N] = size(X_test);
+t_x_bar = (sum(X_test') / t_N)';
+t_sigma = (sum(((X_test - repmat(t_x_bar, 1, t_N)) .^ 2)') / t_N)';
+X_test = (X_test - repmat(t_x_bar, 1, t_N)) ./ repmat(t_sigma, 1, t_N);
+X_test(isnan(X_test) == 1) = 0;
+
+test_error = 1 - sum((w1' * [ones(1, t_N); X_test] .* y_test) > 0) / t_N
+%% SVM with slack variable
